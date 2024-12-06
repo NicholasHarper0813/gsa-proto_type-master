@@ -1,0 +1,185 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8" />
+<title>JSSpec results</title>
+<link rel="stylesheet" type="text/css" href="lib/JSSpec.css" />
+<script type="text/javascript" src="lib/diff_match_patch.js"></script>
+<script type="text/javascript" src="lib/JSSpec.js"></script>
+<script type="text/javascript" src="../lib/prototype.js"></script>
+<script type="text/javascript" src="../lib/builder.js"></script>
+<script type="text/javascript" src="base.js"></script>
+<script type="text/javascript" src="../src/gsa.js"></script>
+<script type="text/javascript" src="../src/results.js"></script>
+<script type="text/javascript" src="../src/json.js"></script>
+<script type="text/javascript" src="fixtures/results.js"></script>
+<script type="text/javascript">// <![CDATA[
+
+describe('GSA in general', {
+  
+  before_each : function() {
+    gsa = new Gsa('foo.com');
+    //mock out the request method of Json
+    Json.Request.addMethods({
+      request: function(url) {
+        try {
+          (this.options.get('onCreate') || Prototype.emptyFunction)(this);
+          Json.Responders.dispatch('onCreate', this);
+          var head = $$('head')[0];                 
+          var script = document.createElement('script');
+          script.type = 'text/javascript';
+          script.src = 'nonexistant.js';
+          script.id = 'json_request';
+          head.appendChild(script);
+        }
+        catch (e) {
+          this.dispatchException(e);
+        }
+      }
+    });
+    Json.Responders.register({
+      onException:   function(foo,e) {
+        if (Prototype.Browser.Gecko) {
+          console.log(e);
+        } else {
+          alert(e);
+        }
+      }
+    });
+  },
+  
+  'should require a domain': function() {
+    try {
+      var badgsa = new Gsa();
+      expect(this).should_fail("no exception raised");
+    } catch(e) {
+      expect(true).should_be_true();
+    }
+  },
+  
+  'should have default options': function() {
+    var newgsa = new Gsa(
+      'bar.com',
+      {
+        proxyreload: true,
+        num: 20,
+        port: 8443
+      }
+    );   
+    expect(gsa.domain).should_be("foo.com");
+    expect(gsa.port).should_be(80);
+    expect(gsa.options.get('proxyreload')).should_not_be(true);
+    expect(gsa.options.get('proxystylesheet')).should_be('json');
+    expect(newgsa.port).should_be(8443);
+    expect(newgsa.options.get('proxyreload')).should_be(true);
+    expect(newgsa.options.get('num')).should_be(20);
+  },
+  
+  'should cleanly wrap up the JSON request process': function() {
+    gsa.search('foo');
+    Json.callback(results.jnewland);
+    expect(gsa.request.response).should_be(results.jnewland);
+  },
+  
+  'should requre a query': function() {
+    expect(gsa.search('')).should_be(false);
+    expect(gsa.search(null)).should_be(false);
+  },
+  
+  'should allow onSearch and other callbacks to be registered': function() {
+    callbacks = new Gsa('foo.com', { onSearch: function (gsa) { gsa.searching = 'searching' }, onComplete: function (gsa) { gsa.complete = 'complete' } });
+    callbacks.search('foo');
+    expect(callbacks.searching).should_be('searching');
+    Json.callback(results.jnewland);
+    expect(callbacks.complete).should_be('complete');
+  },
+  
+  'should be able to perform a basic search': function() {
+    expect(gsa.search('jesse newland')).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&q=jesse%20newland');
+    Json.callback(results.jnewland);
+    expect(gsa.results.size()).should_be(10);
+  },
+  
+  'should allow sorting options to be adjusted': function() {
+    expect(gsa.search('jesse newland', { sort: { direction: 'ascending', mode: 'date'} })).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&q=jesse%20newland&sort=date%3AA%3AS%3Ad1');
+    expect(gsa.search('jesse newland', { sort: 'D:S:d1' })).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&q=jesse%20newland&sort=date%3AD%3AS%3Ad1');
+    expect(gsa.search('jesse newland', { sort: 'date:D:S:d1' })).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&q=jesse%20newland&sort=date%3AD%3AS%3Ad1');
+    expect(gsa.search('jesse newland', { sort: [1,2,3] })).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&q=jesse%20newland&sort=date%3AD%3AL%3Ad1');
+  },
+    
+  'should allow retrieval of meta tags': function() {
+    expect(gsa.search('jesse newland', { getfields: '*' })).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&q=jesse%20newland&getfields=*');
+    expect(gsa.search('jesse newland', { getfields: ['foo','bar'] })).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&q=jesse%20newland&getfields=foo.bar');
+  },
+  
+  'should allow filtering via meta tags': function() {
+    expect(gsa.search('jesse newland', { requiredfields: { fields: { foo: '1', bar: '2' } } })).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&q=jesse%20newland&requiredfields=foo%3A1.bar%3A2');
+    expect(gsa.search('jesse newland', { partialfields: { mode: 'OR', fields: { foo: '1', bar: '2' } } })).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&q=jesse%20newland&partialfields=foo%3A1%7Cbar%3A2');
+    expect(gsa.search('jesse newland', { requiredfields: { fields: { foo: ['1','2'], bar: '2' } } })).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&q=jesse%20newland&requiredfields=foo%3A1.foo%3A2.bar%3A2');
+    expect(gsa.searchOptions.get('requiredfields')).should_be({ fields: { foo: ['1','2'], bar: '2' } });
+  },
+  
+  'should have handy next, previous, and page functions': function() {
+    expect(gsa.search('jesse newland', { requiredfields: { fields: { foo: '1', bar: '2' } } })).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&q=jesse%20newland&requiredfields=foo%3A1.bar%3A2');
+    expect(gsa.next()).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&start=10&q=jesse%20newland&requiredfields=foo%3A1.bar%3A2');
+    expect(gsa.next()).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&start=20&q=jesse%20newland&requiredfields=foo%3A1.bar%3A2');
+    expect(gsa.previous()).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&start=10&q=jesse%20newland&requiredfields=foo%3A1.bar%3A2');
+    expect(gsa.page(3)).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&start=20&q=jesse%20newland&requiredfields=foo%3A1.bar%3A2');
+    expect(gsa.page(1)).should_be(true);
+    expect(gsa.buildUri()).should_be('http://foo.com/search?output=xml_no_dtd&proxystylesheet=json&client=json&site=default_collection&q=jesse%20newland&requiredfields=foo%3A1.bar%3A2');  
+  },
+  
+  'next, previous, and page functions should require a search first': function() {
+    expect(gsa.next()).should_be(false);
+    expect(gsa.previous()).should_be(false);
+    expect(gsa.page(1)).should_be(false);
+  },
+  
+  'previous function should not work on first page': function() {
+    expect(gsa.search('jesse newland', { requiredfields: { fields: { foo: '1', bar: '2' } } })).should_be(true);
+    expect(gsa.previous()).should_be(false);
+  },
+  
+  'should build will_paginate style pagination html': function() {
+    function serializeNode(node){
+      if(node.nodeType == 3) return node.nodeValue;
+      node = $(node);
+      var tag = node.tagName.toLowerCase();
+      return '<' + ([tag].concat($A(node.attributes).map(function(attr){
+        // Filter out stuff that we don't need
+        if(attr.nodeName == '_extended' || attr.nodeName == '_counted' || 
+          typeof attr.nodeValue == 'function' ||!Element.hasAttribute(node, attr.nodeName)) return;
+        // remove trailing ; in style attributes on Firefox
+        var value = node.readAttribute(attr.nodeName);
+        if(attr.nodeName == 'style' && value.endsWith(';'))
+          value = value.substr(0, value.length-1); 
+        return attr.nodeName + '=\'' + value + '\''
+      }).compact().sort())).join(' ') + '>' + $A(node.childNodes).map(serializeNode).join('') + 
+      '</' + tag + '>';
+    }
+    gsa.search('foo');
+    Json.callback(results.jnewland);
+    expect(serializeNode(gsa.buildPaginationHTML())).should_be("<div class='gsa-prototype-pagination'><span class='disabled' id='page_previous'>« Previous</span><a class='' href='#next' id='page_next'>Next »</a></div>");
+  },
+  
+})
+
+// ]]></script>
+</head>
+<body><div style="display:none;"><p>A</p><p>B</p></div></body>
+</html>

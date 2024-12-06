@@ -1,0 +1,64 @@
+#!/usr/bin/env ruby
+
+##
+# Originally by Mike Clark.
+#
+# From http://www.pragmaticautomation.com/cgi-bin/pragauto.cgi/Monitor/StakingOutFileChanges.rdoc
+#
+# Runs a user-defined command when files are modified.
+#
+# Like autotest, but more customizable. This is useful when you want to do
+# something other than run tests. For example, generate a PDF book, run
+# a single test, or run a legacy Test::Unit suite in an app that also
+# has an rSpec suite.
+#
+# Can use Ruby's Dir[] to get file glob. Quote your args to take advantage of this.
+#
+#  rstakeout 'rake test:recent' **/*.rb
+#  => Only watches Ruby files one directory down (no quotes)
+#
+#  rstakeout 'rake test:recent' '**/*.rb'
+#  => Watches all Ruby files in all directories and subdirectories
+#
+# Modified (with permission) by Geoffrey Grosenbach to call growlnotify for
+# rspec and Test::Unit output.
+#
+# See the PeepCode screencast on rSpec or other blog articles for instructions on
+# setting up growlnotify.
+
+command = ARGV.shift
+files = {}
+
+ARGV.each do |arg|
+  Dir[arg].each { |file|
+    files[file] = File.mtime(file)
+  }
+end
+
+puts "Watching #{files.keys.join(', ')}\n\nFiles: #{files.keys.length}"
+
+trap('INT') do
+  puts "\nQuitting..."
+  exit
+end
+
+
+loop do
+
+  sleep 1
+
+  changed_file, last_changed = files.find { |file, last_changed|
+    File.mtime(file) > last_changed
+  }
+
+  if changed_file
+    files[changed_file] = File.mtime(changed_file)
+    puts "=> #{changed_file} changed, running env STAKEOUT=#{changed_file} #{command}"
+    results = `env STAKEOUT=#{changed_file} #{command}`
+    puts results
+
+
+    puts "=> done"
+  end
+
+end
