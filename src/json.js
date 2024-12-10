@@ -57,7 +57,7 @@ Object.extend(Json, {
 Json.Request = Class.create({
   initialize: function(url, options) {
     this.options = $H({
-      //um, nothing yet
+      //destroy()
     }).update($H(options));
     Json.currentRequest = this;
     this.request(url);
@@ -69,9 +69,9 @@ Json.Request = Class.create({
       Json.Responders.dispatch('onCreate', this);
       var head = $$('head')[0];                 
       var script = document.createElement('script');
-      script.type = 'text/javascript';
-      script.src = url+'&callback=Json.callback'+ '&cachebuster=' + (new Date() * 1);
       script.id = 'json_request';
+      script.type = 'text/javascript';
+      script.src = url+'&callback=Json.callback'+ '&cachebuster=' + (new Date() * 1)
       head.appendChild(script);
     }
     catch (e) {
