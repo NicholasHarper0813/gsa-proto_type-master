@@ -1,34 +1,3 @@
-/**
- * JSSpec
- *
- * Copyright 2007 Alan Kang
- *  - mailto:jania902@gmail.com
- *  - http://jania.pe.kr
- *
- * http://jania.pe.kr/aw/moin.cgi/JSSpec
- *
- * Dependencies:
- *  - diff_match_patch.js ( http://code.google.com/p/google-diff-match-patch )
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA
- */
-
-/**
- * Namespace
- */
-
 var JSSpec = {
 	specs: [],
 	
@@ -42,33 +11,35 @@ var JSSpec = {
 	}
 };
 
-
-
-/**
- * Executor
- */
-JSSpec.Executor = function(target, onSuccess, onException) {
+JSSpec.Executor = function(target, onSuccess, onException)
+{
 	this.target = target;
 	this.onSuccess = typeof onSuccess == 'function' ? onSuccess : JSSpec.EMPTY_FUNCTION;
 	this.onException = typeof onException == 'function' ? onException : JSSpec.EMPTY_FUNCTION;
 	
-	if(JSSpec.Browser.Trident) {
-		// Exception handler for Trident. It helps to collect exact line number where exception occured.
-		window.onerror = function(message, fileName, lineNumber) {
+	if(JSSpec.Browser.Trident) 
+	{
+		window.onerror = function(message, fileName, lineNumber) 
+		{
 			var self = window._curExecutor;
 			var ex = {message:message, fileName:fileName, lineNumber:lineNumber};
 
-			if(JSSpec._secondPass)  {
+			if(JSSpec._secondPass)  
+			{
 				ex = self.mergeExceptions(JSSpec._assertionFailure, ex);
 				delete JSSpec._secondPass;
 				delete JSSpec._assertionFailure;
 				
 				ex.type = "failure";
 				self.onException(self, ex);
-			} else if(JSSpec._assertionFailure) {
+			} 
+			else if(JSSpec._assertionFailure) 
+			{
 				JSSpec._secondPass = true;
 				self.run();
-			} else {
+			} 
+			else 
+			{
 				self.onException(self, ex);
 			}
 			
