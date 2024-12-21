@@ -2,20 +2,11 @@
 
   <xsl:output method="text" omit-xml-declaration="yes" indent="no" media-type="text/plain"/>
 	<xsl:strip-space elements="*"/>
-	<!-- **********************************************************************
-  			build variables based on query string
-  ************************************************************************ -->
-
 	<xsl:variable name="callback">
 	  <xsl:for-each select="/GSP/PARAM[(@name = 'callback')]">
 	    <xsl:value-of select="@value"/>
 	  </xsl:for-each>
 	</xsl:variable>
-
-	<!-- **********************************************************************
-  			sub-templates
-  ************************************************************************ -->
-
 	<xsl:template match="/">
 		<xsl:choose>
 	    <xsl:when test="$callback=''"><xsl:call-template name="json" /></xsl:when>
@@ -86,8 +77,7 @@
     "SZ": "<xsl:value-of select="@SZ"/>",
     "CID": "<xsl:value-of select="@CID"/>"
   </xsl:template>
-  
-  <!-- *** quote escaping *** -->
+
   <xsl:template name="escape_quot">
     <xsl:param name="string"/>
     <xsl:call-template name="replace_string">
@@ -97,7 +87,6 @@
     </xsl:call-template>
   </xsl:template>
 
-  <!-- *** Find and replace *** -->
   <xsl:template name="replace_string">
     <xsl:param name="find"/>
     <xsl:param name="replace"/>
