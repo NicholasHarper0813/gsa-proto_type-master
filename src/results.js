@@ -11,16 +11,19 @@ Gsa.Results = Class.create({
     UE: 'encoded_url'
   }),
   
-  initialize: function(json) {
+  initialize: function(json)
+  {
     this.json = json;
     this._object = $H().toObject();
     this.parseJSON();
   },
   
-  parseJSON: function () {
+  parseJSON: function () 
+  {
     this.set('query', this.json.Q);
     this.set('time', this.json.TM);
-    if (!Object.isUndefined(this.json.RES)) { 
+    if (!Object.isUndefined(this.json.RES)) 
+    { 
       this.set('start', this.json.RES.SN);
       this.set('end', this.json.RES.EN);
       this.set('total', this.json.RES.M);
@@ -29,7 +32,9 @@ Gsa.Results = Class.create({
       this.set('results', $A(this.json.RES.R).map(function (value){
         return this.parseResult(value);
       }.bind(this)));
-    } else {
+    }
+    else 
+    {
       this.set('results', $A());
       this.set('start', 0);
       this.set('end', 0);
@@ -39,28 +44,35 @@ Gsa.Results = Class.create({
     }
   },
   
-  parseResult: function (r) {
+  parseResult: function (r) 
+  {
     r = $H(r);
     this.mappings.each(function (pair) {
       var key = pair.key, value = pair.value;
       if (Object.isString(r.get(key)) || Object.isNumber(r.get(key))) {
         r.set(value, new String(r.unset(key)).strip());
-      } else if (key == 'FS' || key == 'MT'){
+      } 
+      else if (key == 'FS' || key == 'MT')
+      {
         var array = $A(r.unset(key));
         var hash = $H();
         array.each(function(item) {
           item = $H(item);
           var key = item.keys()[0];
           var value = item.values()[0];
-          if (Object.isUndefined(hash.get(key))) {
+          if (Object.isUndefined(hash.get(key))) 
+          {
            hash.update(item); 
-          } else {
-            if (Object.isString(hash.get(key))) {
+          }
+          else 
+          {
+            if (Object.isString(hash.get(key))) 
+            {
               hash.set(key,$A([hash.get(key)]));
             }
-            if (Object.isArray(hash.get(key))) {
+            if (Object.isArray(hash.get(key)))
+            {
               hash.get(key).push(value)
-              //FIXME: totally inefficient
               var array = hash.get(key);
               array.toString = function() { return this.join(', ') }
               hash.set(key,array);
@@ -73,19 +85,19 @@ Gsa.Results = Class.create({
       }
     }.bind(r));
     
-    //cache_url
     r.unset('U');
     if (!Object.isUndefined(r.get('HAS')) && !Object.isUndefined(r.get('HAS').C) && !Object.isUndefined(r.get('HAS').C.SZ)) {
       r.set('cache_url', 'search?q=cache:'+r.get('HAS').C.CID+':'+r.get('encoded_url'))
     }
     r.unset('HAS');
     
-    //toTemplateReplacements
-    r.toTemplateReplacements = function () {
+    r.toTemplateReplacements = function () 
+    {
       hash = r.clone();
       hash.each(function (pair) {
         var key = pair.key, value = pair.value;
-        if (!Object.isString(value) && !Object.isNumber(value)) {
+        if (!Object.isString(value) && !Object.isNumber(value)) 
+        {
           hash.set(key,value._object);
         }
       });
@@ -95,42 +107,51 @@ Gsa.Results = Class.create({
     return r;
   },
   
-  _each: function(iterator) {
+  _each: function(iterator) 
+  {
     for (var i = 0, length = this.get('results').length; i < length; i++)
       iterator(this.get('results')[i]);
   },
   
-  first: function() {
+  first: function()
+  {
     return this.get('results')[0];
   },
 
-  last: function() {
+  last: function()
+  {
     return this.get('results')[this.get('results').size() - 1];
   },
   
-  set: function(key, value) {
+  set: function(key, value) 
+  {
     return this._object[key] = value;
   },
 
-  get: function(key) {
+  get: function(key) 
+  {
     return this._object[key];
   },
 
-  unset: function(key) {
+  unset: function(key) 
+  {
     var value = this._object[key];
     delete this._object[key];
     return value;
   },
 
-  toObject: function() {
+  toObject: function() 
+  {
     return Object.clone(this._object);
   },
   
-  size: function() {
+  size: function() 
+  {
     return this.get('results').length;
   },
   
-  toTemplateReplacements: function() {
+  toTemplateReplacements: function() 
+  {
     return this._object;
   }
 });
